@@ -29,7 +29,16 @@ export interface FormInput {
 }
 
 export interface Operation {
-  type: "httpRequest" | "shell" | "transform" | "fileRead" | "fileWrite" | "clipboard" | "open" | "showToast" | "showHUD";
+  type:
+    | "httpRequest"
+    | "shell"
+    | "transform"
+    | "fileRead"
+    | "fileWrite"
+    | "clipboard"
+    | "open"
+    | "showToast"
+    | "showHUD";
   config: Record<string, unknown>;
   outputVar?: string; // Store result in this variable name
 }

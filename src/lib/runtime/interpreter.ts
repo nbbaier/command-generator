@@ -126,7 +126,9 @@ function interpolateConfig(config: Record<string, unknown>, context: ExecutionCo
     }
     return interpolateValue(config) as Record<string, unknown>;
   } catch (error) {
-    throw new InterpreterError(`Template interpolation failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw new InterpreterError(
+      `Template interpolation failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
@@ -138,6 +140,8 @@ export function interpolateTemplate(template: string, context: Record<string, un
     const compiled = Handlebars.compile(template);
     return compiled(context);
   } catch (error) {
-    throw new InterpreterError(`Template interpolation failed: ${error instanceof Error ? error.message : String(error)}`);
+    throw new InterpreterError(
+      `Template interpolation failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }

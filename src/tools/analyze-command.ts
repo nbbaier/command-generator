@@ -1,10 +1,10 @@
 // AI Tool: Analyze Command
 // This tool analyzes existing Raycast command or script code
 
+import { randomUUID } from "node:crypto";
 import { AI, environment } from "@raycast/api";
-import { randomUUID } from "crypto";
-import { CommandSpec } from "../types/command-spec";
 import { saveCommandSpec } from "../lib/specs/loader";
+import type { CommandSpec } from "../types/command-spec";
 
 interface AnalyzeCommandInput {
   commandCode: string;

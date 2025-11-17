@@ -1,71 +1,71 @@
 {
-  "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "command-generator",
-  "title": "Command Generator",
-  "description": "Describe functionality in natural language and receive production-ready Raycast commands.",
-  "icon": "extension-icon.png",
-  "author": "nbbaier",
-  "platforms": [
-    "macOS",
-    "Windows"
-  ],
-  "categories": [
-    "Productivity",
-    "Other",
-    "Developer Tools"
-  ],
-  "license": "MIT",
-  "commands": [
-    {
-      "name": "manage-generated-commands",
-      "title": "Run Generated Commands",
-      "description": "Execute and manage AI-generated command specifications",
-      "mode": "view"
-    },
-    {
-      "name": "command-library",
-      "title": "Command Templates",
-      "description": "Browse and instantiate pre-built command templates",
-      "mode": "view"
-    }
-  ],
-  "tools": [
-    {
-      "name": "generate-typescript-command",
-      "title": "Generate Command Spec",
-      "description": "Generates an executable command specification (JSON) that runs immediately in the command runner. Supports list, form, detail, and view modes with HTTP requests, shell execution, and data transforms. Optionally exports a standalone TypeScript extension."
-    },
-    {
-      "name": "generate-script-command",
-      "title": "Generate Script Command",
-      "description": "Generates a shell or Node.js script with a CommandSpec to execute it. Can export as a Raycast Script Command with metadata headers for manual installation."
-    },
-    {
-      "name": "analyze-command",
-      "title": "Analyze Command",
-      "description": "Analyzes existing Raycast command or script code, provides explanations, converts to CommandSpec, or exports as standalone extension with improvements."
-    }
-  ],
-  "dependencies": {
-    "@raycast/api": "^1.103.6",
-    "@raycast/utils": "^1.17.0",
-    "handlebars": "^4.7.8",
-    "node-fetch": "^3.3.2"
-  },
-  "devDependencies": {
-    "@raycast/eslint-config": "^2.0.4",
-    "@types/node": "22.13.10",
-    "@types/react": "19.0.10",
-    "eslint": "^9.22.0",
-    "prettier": "^3.5.3",
-    "typescript": "^5.8.2"
-  },
-  "scripts": {
-    "build": "ray build",
-    "dev": "ray develop",
-    "fix-lint": "ray lint --fix",
-    "lint": "ray lint",
-    "prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
-    "publish": "npx @raycast/api@latest publish"
-  }
+	"$schema": "https://www.raycast.com/schemas/extension.json",
+	"name": "command-generator",
+	"title": "Command Generator",
+	"description": "Describe functionality in natural language and receive production-ready Raycast commands.",
+	"icon": "extension-icon.png",
+	"author": "nbbaier",
+	"platforms": [
+		"macOS",
+		"Windows"
+	],
+	"categories": [
+		"Productivity",
+		"Other",
+		"Developer Tools"
+	],
+	"license": "MIT",
+	"commands": [
+		{
+			"name": "manage-generated-commands",
+			"title": "Run Generated Commands",
+			"description": "Execute and manage AI-generated command specifications",
+			"mode": "view"
+		},
+		{
+			"name": "command-library",
+			"title": "Command Templates",
+			"description": "Browse and instantiate pre-built command templates",
+			"mode": "view"
+		}
+	],
+	"tools": [
+		{
+			"name": "generate-typescript-command",
+			"title": "Generate Command Spec",
+			"description": "Generates an executable command specification (JSON) that runs immediately in the command runner. Supports list, form, detail, and view modes with HTTP requests, shell execution, and data transforms. Optionally exports a standalone TypeScript extension."
+		},
+		{
+			"name": "generate-script-command",
+			"title": "Generate Script Command",
+			"description": "Generates a shell or Node.js script with a CommandSpec to execute it. Can export as a Raycast Script Command with metadata headers for manual installation."
+		},
+		{
+			"name": "analyze-command",
+			"title": "Analyze Command",
+			"description": "Analyzes existing Raycast command or script code, provides explanations, converts to CommandSpec, or exports as standalone extension with improvements."
+		}
+	],
+	"dependencies": {
+		"@raycast/api": "^1.103.6",
+		"@raycast/utils": "^1.17.0",
+		"handlebars": "^4.7.8",
+		"node-fetch": "^3.3.2"
+	},
+	"devDependencies": {
+		"@raycast/eslint-config": "^2.0.4",
+		"@types/node": "22.13.10",
+		"@types/react": "19.0.10",
+		"eslint": "^9.22.0",
+		"prettier": "^3.5.3",
+		"typescript": "^5.8.2"
+	},
+	"scripts": {
+		"build": "ray build",
+		"dev": "ray develop",
+		"fix-lint": "ray lint --fix",
+		"lint": "ray lint",
+		"prepublishOnly": "echo \"\\n\\nIt seems like you are trying to publish the Raycast extension to npm.\\n\\nIf you did intend to publish it to npm, remove the \\`prepublishOnly\\` script and rerun \\`npm publish\\` again.\\nIf you wanted to publish it to the Raycast Store instead, use \\`npm run publish\\` instead.\\n\\n\" && exit 1",
+		"publish": "npx @raycast/api@latest publish"
+	}
 }

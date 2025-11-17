@@ -1,12 +1,12 @@
 // AI Tool: Generate Script Command
 // This tool generates a shell or Node.js script with a CommandSpec to execute it
 
+import { randomUUID } from "node:crypto";
+import { promises as fs } from "node:fs";
 import { AI, environment } from "@raycast/api";
-import { randomUUID } from "crypto";
-import { promises as fs } from "fs";
 import path from "path";
-import { CommandSpec } from "../types/command-spec";
-import { saveCommandSpec, getScriptsDirectory } from "../lib/specs/loader";
+import { getScriptsDirectory, saveCommandSpec } from "../lib/specs/loader";
+import type { CommandSpec } from "../types/command-spec";
 
 interface GenerateScriptCommandInput {
   commandDescription: string;
