@@ -93,7 +93,7 @@ export default function Command() {
 function RunCommand({ spec }: { spec: CommandSpec }) {
   // If command requires form input, show form first
   if (spec.mode === "form" && spec.inputs && spec.inputs.length > 0) {
-    return <CommandForm spec={spec} onSubmit={(values) => executeCommand(spec, values)} />;
+    return <CommandForm spec={spec} onSubmit={(values) => executeCommandSpec(spec, values)} />;
   }
 
   // Otherwise, execute immediately and show results
