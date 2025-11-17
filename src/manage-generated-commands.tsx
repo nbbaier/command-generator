@@ -303,6 +303,12 @@ function ActionForItem({
         const text = interpolateTemplate(config.text as string, context);
         await import("@raycast/api").then((api) => api.Clipboard.copy(text));
         await showToast({ style: Toast.Style.Success, title: "Copied to clipboard" });
+      } else {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "Unsupported action",
+          message: `Action type "${type}" is not supported.`,
+        });
       }
     } catch (error) {
       await showToast({

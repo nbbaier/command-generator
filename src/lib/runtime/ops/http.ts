@@ -14,19 +14,34 @@ export async function executeHttpRequest(config: HttpRequestConfig): Promise<unk
   if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
     throw new Error(`Unsupported protocol: ${parsedUrl.protocol}. Only HTTP and HTTPS are allowed.`);
   }
-  const response = await fetch(config.url, {
-    method: config.method,
-    headers: config.headers,
-    body: config.body ? JSON.stringify(config.body) : undefined,
-  });
+  // Set up timeout using AbortController
+  const controller = new AbortController();
+  const timeoutMs = typeof config.timeout === "number" ? config.timeout : 30000; // default 30s
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-  }
+  try {
+    const response = await fetch(config.url, {
+      method: config.method,
+      headers: config.headers,
+      body: config.body ? JSON.stringify(config.body) : undefined,
+      signal: controller.signal,
+    });
 
-  const contentType = response.headers.get("content-type");
-  if (contentType?.includes("application/json")) {
-    return await response.json();
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (contentType?.includes("application/json")) {
+      return await response.json();
+    }
+    return await response.text();
+  } catch (err: any) {
+    if (err.name === "AbortError") {
+      throw new Error(`HTTP request timed out after ${timeoutMs} ms`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeout);
   }
-  return await response.text();
 }
