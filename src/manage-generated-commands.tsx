@@ -1,5 +1,5 @@
-import { Action, ActionPanel, Detail, Form, Icon, List, showToast, Toast } from "@raycast/api";
-import { useEffect, useState } from "react";
+import { Action, ActionPanel, Clipboard, Detail, Form, Icon, List, open, showToast, Toast } from "@raycast/api";
+import { useCallback, useEffect, useState } from "react";
 import { CommandSpec } from "./types/command-spec";
 import { loadAllCommandSpecs, deleteCommandSpec } from "./lib/specs/loader";
 import { executeCommandSpec, interpolateTemplate } from "./lib/runtime/interpreter";
@@ -70,7 +70,7 @@ export default function Command() {
                 <Action.Push
                   title="Run Command"
                   icon={Icon.Play}
-                  target={<RunCommand spec={spec} onComplete={loadSpecs} />}
+                  target={<RunCommand spec={spec} />}
                 />
                 <Action.Push title="View Details" icon={Icon.Eye} target={<ViewCommandDetails spec={spec} />} />
                 <Action
@@ -90,16 +90,14 @@ export default function Command() {
 }
 
 // Component to run a command
-function RunCommand({ spec, onComplete }: { spec: CommandSpec; onComplete: () => void }) {
-  const [formValues, setFormValues] = useState<Record<string, unknown>>({});
-
+function RunCommand({ spec }: { spec: CommandSpec }) {
   // If command requires form input, show form first
   if (spec.mode === "form" && spec.inputs && spec.inputs.length > 0) {
     return <CommandForm spec={spec} onSubmit={(values) => executeCommandSpec(spec, values)} />;
   }
 
   // Otherwise, execute immediately and show results
-  return <CommandExecutor spec={spec} formValues={formValues} />;
+  return <CommandExecutor spec={spec} formValues={{}} />;
 }
 
 // Form component for commands that need input
@@ -176,11 +174,7 @@ function CommandExecutor({ spec, formValues }: { spec: CommandSpec; formValues: 
   const [error, setError] = useState<string | null>(null);
   const [resultData, setResultData] = useState<Record<string, unknown> | null>(null);
 
-  useEffect(() => {
-    executeCommand();
-  }, []);
-
-  async function executeCommand() {
+  const executeCommand = useCallback(async () => {
     try {
       setIsLoading(true);
       const result = await executeCommandSpec(spec, formValues);
@@ -195,7 +189,11 @@ function CommandExecutor({ spec, formValues }: { spec: CommandSpec; formValues: 
     } finally {
       setIsLoading(false);
     }
-  }
+  }, [spec, formValues]);
+
+  useEffect(() => {
+    executeCommand();
+  }, [executeCommand]);
 
   if (error) {
     return (
@@ -297,11 +295,11 @@ function ActionForItem({
 
       if (type === "open") {
         const url = interpolateTemplate(config.target as string, context);
-        await import("@raycast/api").then((api) => api.open(url));
+        await open(url);
         await showToast({ style: Toast.Style.Success, title: "Opened" });
       } else if (type === "clipboard") {
         const text = interpolateTemplate(config.text as string, context);
-        await import("@raycast/api").then((api) => api.Clipboard.copy(text));
+        await Clipboard.copy(text);
         await showToast({ style: Toast.Style.Success, title: "Copied to clipboard" });
       } else {
         await showToast({
