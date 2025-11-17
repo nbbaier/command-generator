@@ -2,18 +2,22 @@
 
 ## Executive Summary
 
-This document outlines the plan for building a Raycast extension that leverages Raycast AI to help users generate and add new commands to their Raycast workflow. The extension will provide AI-powered tools that allow users to describe what they want their command to do, and the AI will generate the necessary code and configuration.
+This document outlines the plan for building a Raycast extension that leverages Raycast AI to help users generate and execute custom commands. The extension provides AI-powered tools that generate **executable command specifications** that run within a dynamic command runner, plus optionally export standalone Raycast extensions or script commands for manual installation.
+
+**Key Architectural Insight**: Raycast extensions cannot add or modify commands at runtime (package.json is read only at build/install time). Therefore, this extension uses a **single dynamic "runner" command** that executes generated command specifications stored in the extension's support directory.
 
 ---
 
 ## 1. Project Overview
 
 ### Vision
-Create an intelligent Raycast extension that democratizes command creation by allowing users to describe functionality in natural language and receive production-ready Raycast commands.
+Create an intelligent Raycast extension that democratizes command creation by allowing users to describe functionality in natural language and receive immediately executable commands through a dynamic runner, with optional export to standalone extensions.
 
 ### Core Value Proposition
-- **Lower barrier to entry**: Non-developers can create custom Raycast commands
-- **Accelerate development**: Experienced developers can rapidly prototype new commands
+- **Lower barrier to entry**: Non-developers can create and run custom commands instantly
+- **Accelerate development**: Experienced developers can rapidly prototype and test command ideas
+- **No rebuild required**: Generated commands run immediately through the command runner
+- **Export when ready**: Convert successful prototypes to standalone extensions or script commands
 - **Learn by doing**: Users can study generated code to understand Raycast API patterns
 - **Consistency**: AI-generated commands follow best practices and current API standards
 
@@ -28,9 +32,11 @@ Create an intelligent Raycast extension that democratizes command creation by al
 
 ### 2.1 Extension Type
 **AI Extension** with the following components:
-- **AI Tools**: Functions that Raycast AI can invoke to generate commands
-- **Regular Commands**: UI-based commands for managing generated commands
-- **Storage**: Local command library and templates
+- **AI Tools**: Functions that Raycast AI can invoke to generate command specifications
+- **Command Runner**: A single dynamic command that loads and executes generated specs
+- **Regular Commands**: UI-based commands for managing and running generated commands
+- **Storage**: Command specifications stored in `environment.supportPath/commands/`
+- **Export**: Generate standalone extension or script command files for manual installation
 
 ### 2.2 Technology Stack
 - **Language**: TypeScript
@@ -53,30 +59,41 @@ raycast-ai-command-generator/
 │   ├── command-icon.png
 │   └── extension-icon.png
 ├── src/
-│   ├── ai-tools/              # AI Tool implementations
-│   │   ├── generate-command.tsx
-│   │   ├── generate-script-command.tsx
-│   │   └── analyze-existing-command.tsx
+│   ├── tools/                 # AI Tool implementations
+│   │   ├── generate-command-spec.ts
+│   │   ├── generate-script-command.ts
+│   │   └── analyze-command.ts
 │   ├── commands/              # Regular user-facing commands
-│   │   ├── manage-generated-commands.tsx
-│   │   └── view-command-library.tsx
+│   │   ├── run-generated-commands.tsx  # PRIMARY: Dynamic runner + manager
+│   │   └── view-templates.tsx
 │   ├── lib/                   # Shared utilities
-│   │   ├── templates/         # Command templates
-│   │   │   ├── view-command.hbs
-│   │   │   ├── no-view-command.hbs
-│   │   │   ├── form-command.hbs
-│   │   │   ├── list-command.hbs
-│   │   │   └── script-command.hbs
-│   │   ├── generators/        # Code generation logic
-│   │   │   ├── command-generator.ts
-│   │   │   ├── script-generator.ts
-│   │   │   └── package-json-updater.ts
-│   │   ├── validators/        # Input validation
-│   │   │   └── command-validator.ts
+│   │   ├── specs/             # Command specification system
+│   │   │   ├── schema.ts      # CommandSpec TypeScript types
+│   │   │   ├── validator.ts   # Runtime validation
+│   │   │   └── loader.ts      # Load specs from supportPath
+│   │   ├── runtime/           # Command execution engine
+│   │   │   ├── interpreter.ts # Execute CommandSpecs
+│   │   │   └── ops/           # Allowed operations
+│   │   │       ├── http.ts
+│   │   │       ├── shell.ts
+│   │   │       ├── transform.ts
+│   │   │       ├── file.ts
+│   │   │       └── ui.ts
+│   │   ├── export/            # Export to standalone extensions/scripts
+│   │   │   ├── extension-exporter.ts
+│   │   │   └── script-exporter.ts
+│   │   ├── templates/         # Templates for export
+│   │   │   ├── specs/         # Example CommandSpec templates
+│   │   │   └── extensions/    # Standalone extension scaffolds
+│   │   │       ├── view-command.hbs
+│   │   │       ├── form-command.hbs
+│   │   │       ├── list-command.hbs
+│   │   │       └── package.json.hbs
 │   │   └── storage/           # Local storage utilities
 │   │       └── command-storage.ts
 │   └── types/                 # TypeScript type definitions
-│       └── command-types.ts
+│       ├── command-spec.ts    # CommandSpec interface
+│       └── operation.ts       # Operation types
 └── README.md
 ```
 
@@ -86,118 +103,155 @@ raycast-ai-command-generator/
 
 ### 3.1 AI Tools (Invoked via @mention in Raycast AI)
 
-#### Tool 1: Generate TypeScript Command
-**Name**: `generate-typescript-command`
+#### Tool 1: Generate Command Specification
+**Name**: `generate-command-spec`
 
-**Description**: Generates a TypeScript-based Raycast command with React UI components
+**Description**: Generates an executable CommandSpec JSON that runs immediately in the command runner, with optional export to a standalone TypeScript extension
 
 **Inputs**:
 - `commandDescription` (string): Natural language description of what the command should do
-- `commandType` (enum): `view` | `form` | `list` | `no-view`
+- `commandType` (enum): `view` | `form` | `list` | `detail`
 - `requiresAPI` (boolean): Whether the command needs to make API calls
 - `apiDetails` (optional object):
   - `endpoint` (string): API endpoint URL
-  - `authType` (enum): `none` | `bearer` | `apiKey` | `oauth`
+  - `authType` (enum): `none` | `bearer` | `apiKey` | `basic`
   - `method` (enum): `GET` | `POST` | `PUT` | `DELETE`
+- `export` (optional boolean): Whether to generate a standalone extension export
 
 **Outputs**:
-- Generated TypeScript command file
-- Updated package.json with new command entry
-- Required dependencies identified
+- CommandSpec JSON saved to `environment.supportPath/commands/{id}.json`
+- Immediately available in "Run Generated Commands" command
+- (If export=true) Standalone extension folder with package.json, src/, and README
 - Usage instructions
+
+**CommandSpec Structure**:
+```typescript
+interface CommandSpec {
+  id: string;
+  title: string;
+  description: string;
+  mode: "view" | "form" | "list" | "detail";
+  inputs?: FormInput[];
+  steps: Operation[];
+  ui: UIBinding;
+  actions?: Action[];
+  metadata: {
+    created: string;
+    tags: string[];
+  };
+}
+```
 
 **Example Interaction**:
 ```
-User: @generate-typescript-command create a command that shows my GitHub stars
-AI: I'll generate a list command that fetches and displays your GitHub starred repositories.
-[Creates src/github-stars.tsx with List component, API integration, etc.]
+User: @generate-command-spec create a command that shows my GitHub stars
+AI: I'll generate a list command spec that fetches and displays your GitHub starred repositories.
+[Creates environment.supportPath/commands/github-stars.json with HTTP operation, list UI binding]
+Result: Command "GitHub Stars" is now available in your runner. Open "Run Generated Commands" to execute it.
 ```
 
 #### Tool 2: Generate Script Command
 **Name**: `generate-script-command`
 
-**Description**: Generates a standalone script command (Bash, JavaScript, Node.js)
+**Description**: Generates a shell/node script that can be executed via CommandSpec or exported as a Raycast Script Command
 
 **Inputs**:
 - `commandDescription` (string): What the script should do
-- `scriptType` (enum): `bash` | `javascript` | `typescript`
-- `mode` (enum): `silent` | `inline` | `compact`
+- `scriptType` (enum): `bash` | `javascript` | `node`
+- `mode` (enum): `silent` | `inline` | `compact` | `fullOutput`
 - `requiresArguments` (boolean): Whether script needs user input
-- `argumentConfig` (optional object):
-  - `argumentName` (string)
+- `argumentConfig` (optional array):
+  - `name` (string)
   - `placeholder` (string)
   - `type` (enum): `text` | `password`
+- `exportAsScriptCommand` (boolean): Export with Raycast Script Command metadata
 
 **Outputs**:
-- Generated script file with Raycast metadata headers
-- Configuration for environment variables (if needed)
-- Installation/setup instructions
+- Script file saved to `environment.supportPath/commands/scripts/{name}.{sh|js}`
+- CommandSpec that executes the script (shell operation)
+- (If exportAsScriptCommand=true) Script with metadata headers + installation instructions
+- The script is immediately runnable via "Run Generated Commands"
 
 **Example Interaction**:
 ```
 User: @generate-script-command I need a script to restart my PostgreSQL database
-AI: I'll create a silent bash script that restarts PostgreSQL.
-[Creates restart-postgres.sh with proper Raycast headers]
+AI: I'll create a shell script that restarts PostgreSQL and a spec to run it.
+[Creates restart-postgres.sh in supportPath/commands/scripts/]
+[Creates restart-postgres.json spec with shell operation]
+Result: Command "Restart PostgreSQL" is ready. To install as a native Script Command, check the export folder for manual installation instructions.
 ```
 
 #### Tool 3: Analyze Existing Command
 **Name**: `analyze-command`
 
-**Description**: Analyzes an existing command and suggests improvements or explains how it works
+**Description**: Analyzes an existing command/script and suggests improvements, converts to CommandSpec, or exports as standalone extension
 
 **Inputs**:
 - `commandCode` (string): The full code of an existing command
-- `analysisType` (enum): `explain` | `improve` | `convert-to-extension`
+- `analysisType` (enum): `explain` | `improve` | `convert-to-spec` | `export-extension`
 
 **Outputs**:
 - Detailed explanation or improvement suggestions
-- Refactored code (if `improve` selected)
-- Migration guide (if `convert-to-extension` selected)
+- (If `convert-to-spec`) CommandSpec JSON that replicates the functionality
+- (If `export-extension`) Standalone extension folder with improved TypeScript code
+- Refactoring recommendations
 
 **Example Interaction**:
 ```
 User: @analyze-command [pastes script command code]
-AI: This script command follows HN posts. I can convert it to a TypeScript extension command with:
-- Better error handling
-- Progress indicators
-- LocalStorage for history
-Would you like me to generate the improved version?
+AI: This script command follows HN posts. I can convert it to a CommandSpec with:
+- HTTP request operation to fetch HN data
+- List UI to display results
+- Action to open in browser
+Or I can export it as a full TypeScript extension with error handling and LocalStorage.
+Which would you prefer?
+
+User: Convert to spec
+AI: [Creates hn-follow.json spec with HTTP + list UI operations]
+Result: Command "HN Follow" is now runnable via the command runner.
 ```
 
 ### 3.2 Regular Commands (User-Facing UI)
 
-#### Command 1: Manage Generated Commands
-**Purpose**: Browse, edit, and delete previously generated commands
+#### Command 1: Run & Manage Generated Commands (PRIMARY)
+**Purpose**: Execute generated CommandSpecs and manage the library
 
 **Features**:
-- List view of all generated commands
-- Quick actions:
-  - Open in default editor
-  - Copy to clipboard
-  - Delete command
-  - Regenerate with modifications
-- Search and filtering
-- Tags/categories for organization
+- **List view** of all generated CommandSpecs from `supportPath/commands/`
+- **Run immediately**: Select a spec to execute it with the interpreter
+- **Dynamic UI rendering**: Based on spec mode (list/form/detail)
+- **Quick actions**:
+  - ▶️ Run command
+  - ✏️ Edit spec (opens JSON in default editor)
+  - 📋 Duplicate spec
+  - 📤 Export to standalone extension
+  - 📜 Export as Script Command
+  - 🗑️ Delete spec
+- **Search and filtering** by title, tags, type
+- **Detail view**: Shows spec metadata, operations, last run
+- **Execution history**: Track successful runs and errors
 
-#### Command 2: View Command Templates
-**Purpose**: Browse available command templates and examples
+**How it works**:
+1. Load all `.json` files from `supportPath/commands/`
+2. Validate against CommandSpec schema
+3. Display in list with metadata
+4. On selection/run: Pass spec to interpreter
+5. Interpreter executes operations sequentially
+6. Render UI based on mode and results
+
+#### Command 2: View Templates & Examples
+**Purpose**: Browse curated CommandSpec templates for common use cases
 
 **Features**:
-- Gallery of command templates
-- Preview template code
-- Quick generation from template
-- Template customization
-
-#### Command 3: Command Library
-**Purpose**: Access a curated library of common command patterns
-
-**Features**:
-- Pre-built command examples:
-  - API integrations (GitHub, OpenAI, etc.)
-  - Browser automation
-  - System commands
-  - Data transformation
-- One-click adaptation to user needs
+- Gallery of pre-built CommandSpec templates:
+  - **API integrations**: GitHub repos, weather, news feeds
+  - **System commands**: Disk space, process list, network info
+  - **Utilities**: Clipboard transformers, URL shorteners
+  - **Development tools**: Package search, documentation lookup
+- Preview template spec JSON
+- One-click instantiation (saves to `supportPath/commands/`)
+- Customization prompts before saving
+- Tags and categories for browsing
 
 ---
 
@@ -209,43 +263,40 @@ Would you like me to generate the improved version?
 {
   "name": "raycast-ai-command-generator",
   "title": "AI Command Generator",
-  "description": "Generate Raycast commands using AI",
+  "description": "Generate and run custom Raycast commands using AI",
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "version": "1.0.0",
   "author": "nbbaier",
   "license": "MIT",
   "commands": [
     {
-      "name": "manage-generated-commands",
-      "title": "Manage Generated Commands",
-      "description": "View and manage your AI-generated commands",
+      "name": "run-generated-commands",
+      "title": "Run Generated Commands",
+      "description": "Execute and manage AI-generated command specifications",
       "mode": "view"
     },
     {
-      "name": "view-command-library",
-      "title": "Command Library",
-      "description": "Browse pre-built command templates",
+      "name": "view-templates",
+      "title": "Command Templates",
+      "description": "Browse and instantiate pre-built command templates",
       "mode": "view"
     }
   ],
   "tools": [
     {
-      "name": "generate-typescript-command",
-      "title": "Generate TypeScript Command",
-      "description": "Generates a React-based Raycast command with UI components. Use this when the user wants to create a command with a visual interface.",
-      "template": "ai-tools/generate-command"
+      "name": "generate-command-spec",
+      "title": "Generate Command Spec",
+      "description": "Generates an executable command specification (JSON) that runs immediately in the command runner. Supports list, form, detail, and view modes with HTTP requests, shell execution, and data transforms. Optionally exports a standalone TypeScript extension."
     },
     {
       "name": "generate-script-command",
       "title": "Generate Script Command",
-      "description": "Generates a standalone script command (Bash, JavaScript, or TypeScript). Use this for simple automation without UI.",
-      "template": "ai-tools/generate-script-command"
+      "description": "Generates a shell or Node.js script with a CommandSpec to execute it. Can export as a Raycast Script Command with metadata headers for manual installation."
     },
     {
       "name": "analyze-command",
       "title": "Analyze Command",
-      "description": "Analyzes existing Raycast command code and provides explanations or improvement suggestions.",
-      "template": "ai-tools/analyze-existing-command"
+      "description": "Analyzes existing Raycast command or script code, provides explanations, converts to CommandSpec, or exports as standalone extension with improvements."
     }
   ],
   "ai": {
@@ -268,9 +319,20 @@ Would you like me to generate the improved version?
 }
 ```
 
-### 4.2 Tool Implementation Example
+### 4.2 CommandSpec Schema & Operations
 
-**File**: `src/ai-tools/generate-command.tsx`
+See Section 4.2 in the updated plan for complete CommandSpec schema, supported operations, and interpreter pattern.
+
+**Key Design Decisions**:
+1. **No runtime package.json modification** - Commands are stored as JSON specs, not added to manifest
+2. **Interpreter-based execution** - Specs are executed by a runtime interpreter, not compiled
+3. **Allowlisted operations** - Security through limited, safe operation set
+4. **Template-based transforms** - Use Handlebars instead of arbitrary JavaScript eval
+5. **Export for production** - Manual export path to standalone extensions when ready
+
+### 4.3 Tool Implementation Example
+
+**File**: `src/tools/generate-command-spec.ts`
 
 ```typescript
 import { AI } from "@raycast/api";
@@ -786,27 +848,48 @@ AI: This script follows HN posts. I'll create an improved TypeScript version wit
 - Code formatting
 
 ### 11.2 Integration Tests
-- AI tool invocation
-- Package.json updates
-- File system operations
-- Storage operations
+- AI tool invocation and CommandSpec generation
+- CommandSpec validation and storage to supportPath
+- Interpreter execution with various operation types
+- File system operations (read/write to supportPath)
+- Export functionality (standalone extension generation)
 
 ### 11.3 Manual Testing Scenarios
 
-**Test Case 1**: Generate Simple Script
-- Description: "Create a script to show system uptime"
-- Expected: Bash script with inline output mode
-- Validation: Script executes and shows uptime
+**Test Case 1**: Generate Simple Script CommandSpec
+- Description: "Create a command to show disk space"
+- Expected: CommandSpec with shell operation, detail UI
+- Validation: 
+  - Spec saved to supportPath/commands/{id}.json
+  - Appears in "Run Generated Commands" list
+  - Executes and displays disk usage
 
-**Test Case 2**: Generate API Integration
-- Description: "Show my GitHub repositories"
-- Expected: List view with GitHub API integration
-- Validation: Displays repos with proper auth
+**Test Case 2**: Generate API Integration CommandSpec
+- Description: "Show my GitHub starred repos"
+- Expected: CommandSpec with HTTP request, list UI, open/copy actions
+- Validation: 
+  - Spec generated with proper GitHub API endpoint
+  - Requires GITHUB_TOKEN environment variable
+  - Displays list with repo names and star counts
+  - Actions work (open in browser, copy URL)
 
-**Test Case 3**: Migrate Existing Script
-- Input: Existing follow-hn.js script
-- Expected: TypeScript command with enhanced UI
-- Validation: All functionality preserved + improvements
+**Test Case 3**: Export to Standalone Extension
+- Input: Existing GitHub stars CommandSpec
+- Action: Use "Export to Extension" action
+- Expected: 
+  - Folder created with package.json, src/github-stars.tsx, README
+  - Includes instructions to run `npm install && npm run dev`
+  - TypeScript command uses @raycast/api properly
+- Validation: Exported extension runs independently
+
+**Test Case 4**: Convert Existing Script to Spec
+- Input: Existing bash script (e.g., restart-postgres.sh)
+- Action: Use analyze-command tool
+- Expected:
+  - CommandSpec with shell operation
+  - Proper confirmation prompt
+  - Toast notification on success
+- Validation: Converted spec executes original functionality
 
 ---
 
@@ -932,14 +1015,26 @@ AI: This script follows HN posts. I'll create an improved TypeScript version wit
 - Create fallback to template selection
 - Allow iterative refinement
 
-### Risk 4: Generated Code Conflicts
-**Concern**: Overwriting existing files or duplicate commands
+### Risk 4: CommandSpec Storage Conflicts
+**Concern**: Overwriting existing specs or ID collisions
 
 **Mitigation**:
-- Check for existing files before writing
-- Implement confirmation prompts
-- Add versioning/backup system
-- Generate unique command names
+- Use UUID v4 for guaranteed unique IDs
+- Check for existing specs before writing
+- Implement confirmation prompts for overwrites
+- Backup specs before modification
+- Version tracking in metadata
+
+### Risk 5: Security of Shell/Code Execution
+**Concern**: Malicious CommandSpecs could execute harmful operations
+
+**Mitigation**:
+- Shell execution opt-in with explicit user consent
+- Allowlisted operation types only
+- No arbitrary eval() or code execution in MVP
+- File system access limited to supportPath
+- Environment variable access explicit only
+- Future: Implement VM sandboxing for advanced features
 
 ---
 
