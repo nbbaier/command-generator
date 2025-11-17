@@ -3,15 +3,16 @@
 import Handlebars from "handlebars";
 import { TransformConfig } from "../../../types/command-spec";
 
-// Register custom Handlebars helpers
-Handlebars.registerHelper("eq", (a, b) => a === b);
-Handlebars.registerHelper("gt", (a, b) => a > b);
-Handlebars.registerHelper("lt", (a, b) => a < b);
-Handlebars.registerHelper("and", (a, b) => a && b);
-Handlebars.registerHelper("or", (a, b) => a || b);
-Handlebars.registerHelper("not", (a) => !a);
+// Create a dedicated Handlebars instance and register custom helpers
+const hbs = Handlebars.create();
+hbs.registerHelper("eq", (a, b) => a === b);
+hbs.registerHelper("gt", (a, b) => a > b);
+hbs.registerHelper("lt", (a, b) => a < b);
+hbs.registerHelper("and", (a, b) => a && b);
+hbs.registerHelper("or", (a, b) => a || b);
+hbs.registerHelper("not", (a) => !a);
 
 export async function executeTransform(config: TransformConfig): Promise<string> {
-  const template = Handlebars.compile(config.template);
+  const template = hbs.compile(config.template);
   return template(config.data);
 }

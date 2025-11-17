@@ -5,7 +5,6 @@ import { saveCommandSpec } from "./lib/specs/loader";
 import { randomUUID } from "crypto";
 
 export default function Command() {
-  const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
 
   async function instantiateTemplate(index: number) {
     const template = exampleSpecs[index];

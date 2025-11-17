@@ -2,7 +2,7 @@ import { Action, ActionPanel, Detail, Form, Icon, List, showToast, Toast } from 
 import { useEffect, useState } from "react";
 import { CommandSpec } from "./types/command-spec";
 import { loadAllCommandSpecs, deleteCommandSpec } from "./lib/specs/loader";
-import { executeCommandSpec, interpolateTemplate, InterpreterError } from "./lib/runtime/interpreter";
+import { executeCommandSpec, interpolateTemplate } from "./lib/runtime/interpreter";
 
 export default function Command() {
   const [specs, setSpecs] = useState<CommandSpec[]>([]);

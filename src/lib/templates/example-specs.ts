@@ -5,7 +5,8 @@ import { randomUUID } from "crypto";
 
 export const exampleSpecs: CommandSpec[] = [
   {
-    id: randomUUID(),
+    // Template ID: should be a fixed string, not a random UUID at module load time
+    id: "github-stars-template",
     title: "GitHub Stars",
     description: "View your starred GitHub repositories",
     mode: "list",
@@ -171,7 +172,7 @@ export const exampleSpecs: CommandSpec[] = [
         type: "transform",
         config: {
           template: "{{#each stories}}{{this}},{{/each}}",
-          data: { stories: ["{{story1}}", "{{story2}}", "{{story3}}"] },
+          data: { stories: [story1, story2, story3] },
         },
         outputVar: "stories",
       },

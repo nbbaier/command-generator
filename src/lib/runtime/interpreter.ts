@@ -108,10 +108,23 @@ async function executeOperation(
  */
 function interpolateConfig(config: Record<string, unknown>, context: ExecutionContext): Record<string, unknown> {
   try {
-    const configStr = JSON.stringify(config);
-    const template = Handlebars.compile(configStr);
-    const interpolated = template(context);
-    return JSON.parse(interpolated);
+    function interpolateValue(value: unknown): unknown {
+      if (typeof value === "string") {
+        const template = Handlebars.compile(value);
+        return template(context);
+      } else if (Array.isArray(value)) {
+        return value.map(interpolateValue);
+      } else if (value && typeof value === "object") {
+        const result: Record<string, unknown> = {};
+        for (const [k, v] of Object.entries(value)) {
+          result[k] = interpolateValue(v);
+        }
+        return result;
+      } else {
+        return value;
+      }
+    }
+    return interpolateValue(config) as Record<string, unknown>;
   } catch (error) {
     throw new InterpreterError(`Template interpolation failed: ${error instanceof Error ? error.message : String(error)}`);
   }

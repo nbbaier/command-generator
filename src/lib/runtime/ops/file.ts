@@ -10,9 +10,10 @@ import { FileReadConfig, FileWriteConfig } from "../../../types/command-spec";
  */
 function validatePath(filePath: string): string {
   const supportPath = environment.supportPath;
-  const resolvedPath = path.resolve(filePath);
+  const resolvedPath = path.resolve(supportPath, filePath);
+  const relative = path.relative(supportPath, resolvedPath);
 
-  if (!resolvedPath.startsWith(supportPath)) {
+  if (relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error("File access is restricted to the extension support directory");
   }
 
