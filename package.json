@@ -18,37 +18,39 @@
   "commands": [
     {
       "name": "manage-generated-commands",
-      "title": "Manage Generated Commands",
-      "description": "View and manage your AI-generated commands",
-      "mode": "no-view"
+      "title": "Run Generated Commands",
+      "description": "Execute and manage AI-generated command specifications",
+      "mode": "view"
     },
     {
       "name": "command-library",
-      "title": "Command Library",
-      "description": "Browse pre-built command templates",
-      "mode": "no-view"
+      "title": "Command Templates",
+      "description": "Browse and instantiate pre-built command templates",
+      "mode": "view"
     }
   ],
   "tools": [
     {
       "name": "generate-typescript-command",
-      "title": "Generate TypeScript Command",
-      "description": "Generates a React-based Raycast command with UI components. Use this when the user wants to create a command with a visual interface.\n"
+      "title": "Generate Command Spec",
+      "description": "Generates an executable command specification (JSON) that runs immediately in the command runner. Supports list, form, detail, and view modes with HTTP requests, shell execution, and data transforms. Optionally exports a standalone TypeScript extension."
     },
     {
       "name": "generate-script-command",
       "title": "Generate Script Command",
-      "description": "Generates a standalone script command (Bash, JavaScript, or TypeScript). Use this for simple automation without UI."
+      "description": "Generates a shell or Node.js script with a CommandSpec to execute it. Can export as a Raycast Script Command with metadata headers for manual installation."
     },
     {
       "name": "analyze-command",
       "title": "Analyze Command",
-      "description": "Analyzes existing Raycast command code and provides explanations or improvement suggestions."
+      "description": "Analyzes existing Raycast command or script code, provides explanations, converts to CommandSpec, or exports as standalone extension with improvements."
     }
   ],
   "dependencies": {
     "@raycast/api": "^1.103.6",
-    "@raycast/utils": "^1.17.0"
+    "@raycast/utils": "^1.17.0",
+    "handlebars": "^4.7.8",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^2.0.4",
